@@ -39,6 +39,7 @@
       name: python-jmespath 
       state: latest      
 
+  # Reference: http://elinux.org/RPI-Wireless-Hotspot
   - name: "Configure NAT: Enable IP forwarding in the kernel"
     shell: sh -c "echo 1 > /proc/sys/net/ipv4/ip_forward"        
  
@@ -51,18 +52,18 @@
       backrefs: yes     
 
   - name: "Configure NAT: Enable NAT"
-    shell: iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE       
+    shell: iptables -t nat -A POSTROUTING -o enp0s3 -j MASQUERADE       
 
   - name: "Configure NAT: Enable NAT"
     shell: iptables -A FORWARD -i enp0s3 -o enp0s8 -m state --state RELATED,ESTABLISHED -j ACCEPT
 
   - name: "Configure NAT: Enable NAT"
-    shell: sudo iptables -A FORWARD -i enp0s8 -o enp0s3 -j ACCEPT
+    shell: iptables -A FORWARD -i enp0s8 -o enp0s3 -j ACCEPT
     
   - name: "Configure NAT: Enable NAT after each reboot"
     shell: sh -c "iptables-save > /etc/iptables.ipv4.nat"    
 
-  - name: set static IP address for wlan0
+  - name: "Configure NAT: Enable NAT after each reboot"
     blockinfile:
       dest: "/etc/network/interfaces"
       marker: "# {mark} ANSIBLE MANAGED BLOCK nat up"
