@@ -1,0 +1,87 @@
+---
+- hosts: localhost
+  remote_user: vagrant
+  become: yes
+
+  tasks: 
+  - name: make sure ansible host_key_checking is disabled
+    lineinfile:
+      dest: /etc/ansible/ansible.cfg
+      regexp: "^#?host_key_checking = False"
+      line: "host_key_checking = False"
+      backrefs: yes
+      backup: yes
+
+  - name: make sure ansible log is enabled
+    lineinfile:
+      dest: /etc/ansible/ansible.cfg
+      regexp: "^#?log_path = "
+      line: "log_path = /var/log/ansible.log"
+      backrefs: yes
+      backup: yes      
+
+  - name: make sure ansible log is writable
+    file:
+      path: /var/log/ansible.log
+      mode: 0666  
+      state: touch
+      
+  - name: make sure ssh key pair is generated    
+    user:
+      name: "{{ ansible_user }}"
+      generate_ssh_key: yes
+
+  - name: run apt-get update
+    apt: update_cache=yes
+      
+  - name: make sure python-jmespath is installed to use json_query
+    apt: 
+      name: python-jmespath 
+      state: latest      
+
+  - name: "Configure NAT: Enable IP forwarding in the kernel"
+    shell: sh -c "echo 1 > /proc/sys/net/ipv4/ip_forward"        
+ 
+  - name: "Configure NAT: Edit the file /etc/sysctl.conf to set this up automatically on boot"
+    lineinfile:
+      dest: /etc/sysctl.conf
+      regexp: "^#?net.ipv4.ip_forward"
+      line: "net.ipv4.ip_forward=1"
+      backup: yes
+      backrefs: yes     
+
+  - name: "Configure NAT: Enable NAT"
+    shell: iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE       
+
+  - name: "Configure NAT: Enable NAT"
+    shell: iptables -A FORWARD -i enp0s3 -o enp0s8 -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+  - name: "Configure NAT: Enable NAT"
+    shell: sudo iptables -A FORWARD -i enp0s8 -o enp0s3 -j ACCEPT
+    
+  - name: "Configure NAT: Enable NAT after each reboot"
+    shell: sh -c "iptables-save > /etc/iptables.ipv4.nat"    
+
+  - name: set static IP address for wlan0
+    blockinfile:
+      dest: "/etc/network/interfaces"
+      marker: "# {mark} ANSIBLE MANAGED BLOCK nat up"
+      block: |
+        up iptables-restore < /etc/iptables.ipv4.nat
+
+  - name: make sure maas is installed
+    apt: 
+      name: maas 
+      state: latest            
+
+  - name: manual task hint 1
+    debug: 
+      msg: "MaaS is highly secured that we can't create admin account with ansible."
+
+  - name: manual task hint 2
+    debug: 
+      msg: "Please run: sudo maas createadmin manually."
+
+  - name: manual task hint 3
+    debug: 
+      msg: "You may need to input ssh public key when creating an account. Visit .ssh/id_rsa.pub to get the key."

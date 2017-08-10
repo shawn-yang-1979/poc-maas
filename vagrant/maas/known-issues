@@ -1,0 +1,9 @@
+Problem:
+Vagrant hangs at "SSH auth method: Private key
+Solution:
+Open "Oracle Virtual Box Manager" GUI 
+Go to "Settings" -> "Network"
+Choose "Adapter 1" 
+Make sure that "Cable Connected" is checked.
+Reference:
+http://stackoverflow.com/questions/38463579/vagrant-hangs-at-ssh-auth-method-private-key
